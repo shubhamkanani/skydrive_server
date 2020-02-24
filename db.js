@@ -15,5 +15,4 @@ export const connect = (config = appConfig) => {
     ).then(()=>{console.log("db connected")})
     .catch((err)=>{console.log(err)}
     )
-    
   };

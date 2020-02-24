@@ -9,7 +9,7 @@ export const imageUpload = async(req,res) =>{
                 const emailId = decoded.sub;
                 const data = Array;
                 try{
-                    req.files.map(async(file,index) =>{
+                    await req.files.map(async(file,index) =>{
                         const{filename,path,mimetype,orignalname,encoding,destination} = file;
                         await Media.create({
                                         filename,path,mimetype,orignalname,encoding,destination,emailId
@@ -34,14 +34,16 @@ export const imageUpload = async(req,res) =>{
 } 
 export const getMedia = async(req,res) => {
     try{
-        const decoded = await jwt.verify(req.query.token, configKey.secrets.JWT_SECRET);
+        const decoded =  jwt.verify(req.query.token, configKey.secrets.JWT_SECRET);
 
-        const data = await Media.find({emailId:decoded.sub})
-        console.log(data)
+        const data = await Media.find({emailId:decoded.sub,trash:false})
+        //console.log(data)
         if(data){
             res.status(200).send({success:true,data})
         }
-        res.status(400).send({success:false,message:'data Does not Uploaded'})
+        else{
+            res.status(400).send({success:false,message:'data Does not Uploaded'})
+        }
     }
     catch(err){
         res.status(400).send({success:false,message:err})
@@ -51,13 +53,15 @@ export const getMedia = async(req,res) => {
 export const getImages = async(req,res) => {
     try{
         const decoded = await jwt.verify(req.query.token, configKey.secrets.JWT_SECRET);
-
-        const data = await Media.find({emailId:decoded.sub,mimetype:{ $in: ['image/png',"image/bmp","image/gif",'image/jpeg','image/svg+xml'] }})
+        console.log(decoded.sub)
+        const data = await Media.find({emailId:decoded.sub,mimetype:{ $in: ['image/png',"image/bmp","image/gif",'image/jpeg','image/svg+xml'] },trash:false})
         console.log(data)
         if(data){
             res.status(200).send({success:true,data})
         }
-        res.status(400).send({success:false,message:'data Does not Uploaded'})
+        else{
+            res.status(400).send({success:false,message:'data Does not Uploaded'})
+        }
     }
     catch(err){
         res.status(400).send({success:false,message:err})
@@ -70,12 +74,14 @@ export const getDocuments = async(req,res) => {
 
         const data = await Media.find({emailId:decoded.sub,mimetype:{ $in: ['application/json',
                                                                     "application/vnd.ms-powerpoint",
-                                                                    "application/pdf"] }})
-        console.log(data)
+                                                                    "application/pdf"] },trash:false})
+        //console.log(data)
         if(data){
             res.status(200).send({success:true,data})
         }
-        res.status(400).send({success:false,message:'data Does not Uploaded'})
+        else{
+            res.status(400).send({success:false,message:'data Does not Uploaded'})
+        }
     }
     catch(err){
         res.status(400).send({success:false,message:err})
@@ -87,10 +93,10 @@ export const removeDocument = async(req,res)=>{
     console.log(_id);
     try{
 
-        const data = await Media.findOneAndDelete({_id:_id})
+        const data = await Media.findByIdAndUpdate({_id:_id},{trash:true})
         if(data){
             console.log(data.path)
-            fs.unlinkSync(data.path);
+           // fs.unlinkSync(data.path);
             res.status(200).send({success:true,message:'Document Remove Successfully'})
         }
         else{
@@ -101,3 +107,103 @@ export const removeDocument = async(req,res)=>{
         res.status(400).send({success:false,message:'Remove Request Fail'})
     }
 }
+
+export const trashDocument = async(req,res)=>{
+    try{
+        const decoded = await jwt.verify(req.query.token, configKey.secrets.JWT_SECRET);
+
+        const data = await Media.find({emailId:decoded.sub,trash:true})
+        if(data){
+            //console.log(data)
+            res.status(200).send({success:true,data})
+        }
+        else{
+            res.status(400).send({success:false,message:'Trash Not Found In DataBase'})
+        }
+    }
+    catch(err){
+        res.status(400).send({success:false,message:'somthing wrong to fetch data'})    
+    }
+} 
+
+export const removeTrash = async(req,res)=>{
+    const _id  = req.query._id;
+    //console.log(_id);
+    try{
+        const data = await Media.findOneAndDelete({_id:_id,trash:true})
+        if(data){
+            console.log(data.path)
+            fs.unlinkSync(data.path);
+            res.status(200).send({success:true,message:'Trash Empty Successfully'})
+        }
+        else{
+            res.status(400).send({success:false,message:'Document Not Found In Trash'})
+        }
+    }
+    catch(err){
+        res.status(400).send({success:false,message:'Remove Request Fail'})
+    }
+}
+
+export const retriveDocument = async(req,res)=>{
+    const _id=req.query._id;
+    //console.log(_id);
+    try{
+        const data = await Media.findOneAndUpdate({_id:_id,trash:true},{trash:false})
+        if(data){
+            res.status(200).send({success:true,message:'Data Retrive Successfully'})
+        }
+        else{
+            res.status(400).send({success:false,message:'Retrive Document Not Found'})
+        }
+    }
+    catch(err){
+        res.status(400).send({success:false,message:'Retrive Request Fail'})
+    }
+}
+
+export const emptySelectedTrash = async(req,res)=>{
+    try{
+        const decoded = await jwt.verify(req.query.token, configKey.secrets.JWT_SECRET);
+        console.log(decoded , req.body)
+        req.body.map(async item =>{
+            console.log(item, "-----------------------------------------")
+            const data = await Media.findOneAndDelete({_id:item,emailId:decoded.sub,trash:true})
+            fs.unlinkSync(data.path);
+        })
+        res.status(200).send({success:true,message:'All Selected Document is Deleted'})
+    }
+    catch(err){
+        res.status(400).send({success:false,message:'Remove Request Fail'})
+    }
+}
+
+export const retriveSelectedDocument = async(req,res)=>{
+    try{
+        const decoded = await jwt.verify(req.query.token, configKey.secrets.JWT_SECRET);
+        console.log(decoded.sub)
+        req.body.map(async item =>{
+            console.log(item, "-----------------------------------------")
+            await Media.findOneAndUpdate({_id:item,emailId:decoded.sub},{trash:false})
+        })
+        res.status(200).send({success:true,message:'All Selected Documents are retrived sucessfully'})
+    }
+    catch(err){
+        res.status(400).send({success:false,message:'Retrive Request Fail'})
+    }
+}
+
+export const removeAllSelectedDocument = async(req,res)=>{
+    try{
+        const decoded = await jwt.verify(req.query.token, configKey.secrets.JWT_SECRET);
+        console.log(req.body)
+        req.body.map(async item =>{
+            console.log(item, "-----------------------------------------")
+            await Media.findOneAndUpdate({_id:item,emailId:decoded.sub},{trash:true})
+        })
+        res.status(200).send({success:true,message:'All Selected Document Deleted'})
+    }
+    catch(err){
+        res.status(400).send({success:false,message:'Retrive Request Fail'})
+    }
+} 

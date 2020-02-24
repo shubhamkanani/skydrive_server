@@ -1,5 +1,5 @@
 import express from "express";
-import {imageUpload,getMedia,getImages,getDocuments,removeDocument} from "./media.controllers";
+import {imageUpload,getMedia,getImages,getDocuments,removeDocument,trashDocument,removeTrash,retriveDocument,emptySelectedTrash,retriveSelectedDocument,removeAllSelectedDocument} from "./media.controllers";
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
@@ -39,3 +39,6 @@ mediaRouter.route('/').get(getMedia).post(upload.array('file'),imageUpload)
 mediaRouter.route('/images').get(getImages);
 mediaRouter.route('/documents').get(getDocuments);
 mediaRouter.route('/removeitem').delete(removeDocument);
+mediaRouter.route('/trash').get(trashDocument).delete(removeTrash).post(retriveDocument)
+mediaRouter.route('/selectedtrash').delete(emptySelectedTrash).post(retriveSelectedDocument)
+mediaRouter.route('/selected').post(removeAllSelectedDocument);

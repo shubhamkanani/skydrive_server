@@ -9,6 +9,7 @@ const userSchema = Schema({
     encoding:String,
     path:String,
     destination:String,
+    trash:{type: Boolean, default: false},
 
 }, { timestamps: { createdAt: 'created_at' } })
 
