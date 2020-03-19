@@ -7,6 +7,8 @@ const userSchema = Schema({
     emailId:String,
     password:String,
     role:String,
+    pImg:String,
+    bImg:String
 }, { timestamps: { createdAt: 'created_at' } })
 
 export const Users = mongoose.model('users',userSchema);
