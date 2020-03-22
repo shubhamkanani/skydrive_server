@@ -36,29 +36,6 @@ export const getUserDetails = async(req,res) => {
     }
 }
 
-export const setUserImg = async(req,res) => {
-  try{
-    if(req.file) {
-      //console.log("enter.........")
-      var pimg = fs.readFileSync(req.file.path)
-      const decoded = jwt.verify(req.query.token, configKey.secrets.JWT_SECRET);
-      await Users.findOneAndUpdate({emailId:decoded.sub},{pImg:pimg})
-      res.status(200).send({success:true,message:'image upload successfully'})
-    }
-    else{
-      res.status(200).send({
-        success:false,
-        message:'image does not upload successfully'
-      })
-    }
-    }
-  catch(err){
-    res.status(400).send({
-      success:false,
-      message:err
-    })
-  }
-}
 
 export const updateData = async(req,res) =>{
   try{
@@ -92,19 +69,22 @@ export const updateData = async(req,res) =>{
             const notvalidmail = await Users.findOne({emailId:req.body.emailId})
             
             if(!notvalidmail){
+              console.log("enter.........")
               const userInfo = await Media.findOne({emailId:decoded.sub})
               if(userInfo){
                 var Rdestination = userInfo.destination.replace(decoded.sub,req.body.emailId)
-                console.log(Rdestination, 'old email path')
-                fs.renameSync(userInfo.destination,Rdestination, function (err) {
-                  if (err) throw err;
-                  console.log('renamed complete' , Rdestination);
-                });
-                const totalItem = await Users.find({emailId:req.body.emailId})
+                console.log(Rdestination, 'new email path')
+
+                const totalItem = await Media.find({emailId:decoded.sub})
+                console.log(totalItem,'...................')
                 totalItem.map(async(item)=>{
                   const Rpath = Rdestination+'/'+item.filename
                   await Media.findOneAndUpdate({_id:item._id},{path:Rpath,destination:Rdestination,emailId:req.body.emailId})
                 })
+                fs.renameSync(userInfo.destination,Rdestination, function (err) {
+                  if (err) throw err;
+                  console.log('renamed complete' , Rdestination);
+                });
               }
               
               await Users.findOneAndUpdate({emailId:decoded.sub},{emailId:req.body.emailId,
@@ -119,7 +99,7 @@ export const updateData = async(req,res) =>{
               console.log(data)
              axios.post("http://localhost:8000/api/backup/updatebackup?token="+req.query.token,data)
              .then(res=>{
-               console.log(res,message)
+               console.log(res.message, 'backup drive email change')
              })
              .catch(err =>{
                console.log(err);

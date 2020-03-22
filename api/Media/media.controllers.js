@@ -221,8 +221,10 @@ export const emptySelectedTrash = async(req,res)=>{
         console.log(decoded , req.body)
         req.body.map(async item =>{
             console.log(item, "removed trash")
-            const data = await Media.findOneAndDelete({_id:item,emailId:decoded.sub,trash:true})
-            fs.unlinkSync(data.path);
+            const removeItem = await Media.findById({_id:item})
+            console.log(removeItem);
+            fs.unlinkSync(removeItem.path);
+            await Media.findOneAndDelete({_id:item,emailId:decoded.sub,trash:true})
         })
         res.status(200).send({success:true,message:'All Selected Document is Deleted'})
     }
